@@ -5,6 +5,8 @@ import { useEffect } from "react";
 import { fetchProducts } from "../store/actions";
 import Filter from "./Filter";
 import useProductFilter from "./useProductFilter";
+import { fetchCategories } from "../store/actions";
+import Loader from "./Loader";
 
 // http://localhost:xxxx?keyword=television&sortby=desc
 
@@ -15,21 +17,21 @@ const Products = () => {
     const { isLoading, errorMessage } = useSelector(
         (state) => state.errors
     );
-    const {products} = useSelector(
+    const {products, categories} = useSelector(
         (state) => state.products
     )
     const dispatch = useDispatch();
     useProductFilter();
 
-    // useEffect(() => {
-    //     dispatch(fetchProducts());
-    // }, [dispatch]);
+    useEffect(() => {
+        dispatch(fetchCategories());
+    }, [dispatch]);
 
     return (
         <div className="lg:px-14 sm:px-8 px-4 py-14 2xl:w-[90%] 2xl:mx-auto">
-            <Filter />
+            <Filter categories={categories ? categories : []}/>
             {isLoading ? (
-                <p>It is loading...</p>
+                <Loader />
             ) : errorMessage ? (
                 <div className="flex justify-center items-center h-[200px]">
                     <FaExclamationTriangle className="text-slate-800 text-3xl mr-2"/>
