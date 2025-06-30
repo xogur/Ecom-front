@@ -7,6 +7,9 @@ import Filter from "./Filter";
 import useProductFilter from "./useProductFilter";
 import { fetchCategories } from "../store/actions";
 import Loader from "./Loader";
+import Paginations from "./Paginations";
+
+
 
 // http://localhost:xxxx?keyword=television&sortby=desc
 
@@ -17,7 +20,7 @@ const Products = () => {
     const { isLoading, errorMessage } = useSelector(
         (state) => state.errors
     );
-    const {products, categories} = useSelector(
+    const {products, categories, pagination} = useSelector(
         (state) => state.products
     )
     const dispatch = useDispatch();
@@ -45,6 +48,11 @@ const Products = () => {
                        {products && 
                         products.map((item, i) => <ProductCard key={i} {...item} />
                         )}
+                    </div>
+                    <div className="flex justify-center pt-10">
+                        <Paginations 
+                            numberOfPage = {pagination?.totalPages}
+                            totalProducts = {pagination?.totalElements}/>
                     </div>
                 </div>
             )}
