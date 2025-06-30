@@ -1,5 +1,8 @@
 import { FaExclamationTriangle } from "react-icons/fa";
 import ProductCard from "./ProductCard";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { fetchProducts } from "../store/actions";
 
 const Products = () => {
     const isLoading = false;
@@ -12,6 +15,7 @@ const Products = () => {
     useEffect(() => {
         dispatch(fetchProducts());
     }, [dispatch]);
+
 //     const products = [{
 //         productId: 652,
 //         productName: "Iphone Xs max",
@@ -47,9 +51,13 @@ const Products = () => {
             ) : (
                 <div className="min-h-[700px]">
                     <div className="pb-6 pt-14 grid 2xl:grid-cols-4 lg:grid-cols-3 sm:grid-cols-2 gap-y-6 gap-x-6">
-                       {products && 
-                        products.map((item, i) => <ProductCard key={i} {...item} />
-                        )}
+                       {products &&
+            products.map((item, i) => {
+                console.log("이미지 경로:", item.image); // 👉 로그 추가 위치
+                return <ProductCard key={i} {...item} />;
+            })
+        }
+                        
                     </div>
                 </div>
             )}
