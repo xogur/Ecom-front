@@ -1,20 +1,12 @@
 import { FaExclamationTriangle } from "react-icons/fa";
-import ProductCard from "./ProductCard";
+import ProductCard from "../shared/ProductCard";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
-import { fetchProducts } from "../store/actions";
+import { fetchCategories } from "../../store/actions";
 import Filter from "./Filter";
-import useProductFilter from "./useProductFilter";
-import { fetchCategories } from "../store/actions";
-import Loader from "./Loader";
-import Paginations from "./Paginations";
-
-
-
-// http://localhost:xxxx?keyword=television&sortby=desc
-
-// 1. Make sure url is updated with filter values
-// 2. Use this filter values for getting data from backend
+import useProductFilter from "../../hooks/useProductFilter";
+import Loader from "../shared/Loader";
+import Paginations from "../shared/Paginations";
 
 const Products = () => {
     const { isLoading, errorMessage } = useSelector(
