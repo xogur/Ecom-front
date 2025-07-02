@@ -12,6 +12,7 @@ const ProductCard = ({
         price,
         discount,
         specialPrice,
+        about = false,
 }) => {
     const [openProductViewModal, setOpenProductViewModal] = useState(false);
     const btnLoader = false;
@@ -19,8 +20,10 @@ const ProductCard = ({
     const isAvailable = quantity && Number(quantity) > 0;
 
     const handleProductView = (product) => {
-        setSelectedViewProduct(product);
-        setOpenProductViewModal(true);
+        if (!about) {
+            setSelectedViewProduct(product);
+            setOpenProductViewModal(true);
+        }
     };
 
     return (
@@ -66,7 +69,7 @@ const ProductCard = ({
                         {truncateText(description, 80)}
                     </p>
                 </div>
-
+            { !about && (
                 <div className="flex items-center justify-between">
                 {specialPrice ? (
                     <div className="flex flex-col">
@@ -93,6 +96,8 @@ const ProductCard = ({
                     {isAvailable ? "Add to Cart" : "Stock Out"}
                 </button>
                 </div>
+            )}
+            
             </div>
             <ProductViewModal Add commentMore actions
                 open={openProductViewModal}
