@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 const Navbar = () => {
     const path = useLocation().pathname;
     const [navbarOpen, setNavbarOpen] = useState(false);
+    const { user } = useSelector((state) => state.auth);
     const { cart } = useSelector((state) => state.carts);
 
 
