@@ -3,8 +3,8 @@ import React from 'react'
 import { BiUser } from 'react-icons/bi';
 import { FaShoppingCart } from 'react-icons/fa';
 import { IoExitOutline } from 'react-icons/io5';
-import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
 import BackDrop from './BackDrop';
 
 const UserMenu = () => {
