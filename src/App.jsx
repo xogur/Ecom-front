@@ -28,6 +28,7 @@ function App() {
           <Route path='/cart' element={ <Cart />}/>
           <Route path='/' element={<PrivateRoute publicPage />}>
             <Route path='/login' element={ <LogIn />}/>
+            <Route path='/register' element={ <Register />}/>
           </Route>
         </Routes>
       </Router>
