@@ -6,11 +6,14 @@ import { IoExitOutline } from 'react-icons/io5';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import BackDrop from './BackDrop';
+import { logOutUser } from '../store/actions';
 
 const UserMenu = () => {
     const [anchorEl, setAnchorEl] = React.useState(null);
     const open = Boolean(anchorEl);
     const { user } = useSelector((state) => state.auth);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
     const handleClick = (event) => {
       setAnchorEl(event.currentTarget);
     };
@@ -19,6 +22,8 @@ const UserMenu = () => {
     };
 
     const logOutHandler = () => {
+        
+        dispatch(logOutUser(navigate));
         
       };
   
