@@ -5,6 +5,7 @@ import { IoIosMenu } from "react-icons/io";
 import { RxCross2 } from "react-icons/rx";
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import UserMenu from "../UserMenu";
 
 
 
@@ -79,7 +80,12 @@ const Navbar = () => {
                         </Badge>
                    </Link> 
                 </li>
-
+                
+                {(user && user.id) ? (
+                    <li className="font-[500] transition-all duration-150">
+                        <UserMenu />
+                    </li>
+                ) : (
 
                 <li className="font-[500] transition-all duration-150">
                    <Link className="flex items-center space-x-2 px-4 py-[6px] 
@@ -92,6 +98,7 @@ const Navbar = () => {
                         <span>Login</span>
                    </Link> 
                 </li>
+                )}
             </ul>
 
             <button
