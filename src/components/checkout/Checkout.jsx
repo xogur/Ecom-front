@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getUserAddresses } from '../../store/actions';
 import toast from 'react-hot-toast';
 import Skeleton from '../shared/Skeleton';
+import ErrorPage from '../shared/ErrorPage';
 
 const Checkout = () => {
     const [activeStep, setActiveStep] = useState(0);
@@ -54,7 +55,7 @@ const Checkout = () => {
             ))}
         </Stepper>
 
-        {false ? (
+        {isLoading ? (
             <div className='lg:w-[80%] mx-auto py-5'>
                 <Skeleton />
             </div>
@@ -99,6 +100,7 @@ const Checkout = () => {
             )} 
         </div>
         
+        {errorMessage && <ErrorPage message={errorMessage} />}
     </div>
   );
 }
