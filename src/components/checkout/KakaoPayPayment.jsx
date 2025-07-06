@@ -4,6 +4,8 @@ import { useSelector } from "react-redux";
 
 const KakaoPayPayment = () => {
   const { cart, totalPrice } = useSelector((state) => state.carts);
+  const { user } = useSelector((state) => state.auth);
+  const { selectedUserCheckoutAddress } = useSelector((state) => state.auth);
 
   const handleKakaoPay = async () => {
     try {
@@ -13,9 +15,11 @@ const KakaoPayPayment = () => {
           : `${cart[0].productName} 외 ${cart.length - 1}건`;
 
       const response = await axios.post("http://localhost:8080/api/pay/ready", {
+        userId: user.id,
         productName,
         quantity: cart.length,
         totalPrice: totalPrice,
+        addressId: selectedUserCheckoutAddress?.addressId,
       });
 
       const { next_redirect_pc_url } = response.data;
