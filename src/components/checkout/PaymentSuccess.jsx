@@ -1,90 +1,87 @@
-// ✅ React Component: PaymentSuccess.jsx
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { CircularProgress } from '@mui/material';
 
 const PaymentSuccess = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const [pgToken, setPgToken] = useState(null);
+  const [paymentData, setPaymentData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [orderDetails, setOrderDetails] = useState(null);
+
+  const searchParams = new URLSearchParams(location.search);
+  const pgToken = searchParams.get('pg_token');
+  const userId = searchParams.get('userId');
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get("pg_token");
-    setPgToken(token);
-
-    const approvePayment = async () => {
+    const fetchPaymentData = async () => {
       try {
-        const response = await axios.post("http://localhost:8080/api/pay/approve", {
-          pgToken: token,
-          userId: "user-001"
+        const response = await axios.get('http://localhost:8080/api/pay/success', {
+          params: { pg_token: pgToken, userId }
         });
-        setOrderDetails(response.data); // ✅ 주문 정보 저장
-      } catch (error) {
-        console.error("카카오페이 승인 오류:", error);
-        setOrderDetails({ error: true });
+        console.log('✅ 결제 응답:', response.data);
+        setPaymentData(response.data);
+      } catch (err) {
+        console.error("❌ 결제 승인 실패:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (token) {
-      approvePayment();
-    }
-  }, [location]);
+    if (pgToken && userId) fetchPaymentData();
+  }, [pgToken, userId]);
 
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <CircularProgress />
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center py-10">로딩 중...</div>;
+  if (!paymentData) return <div className="text-center py-10 text-red-500">주문 정보를 불러올 수 없습니다.</div>;
 
-  if (orderDetails?.error) {
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-4">
-        <p className="text-red-600 text-xl font-semibold">결제 승인에 실패했습니다.</p>
-        <button
-          onClick={() => navigate('/cart')}
-          className="mt-4 bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600"
-        >
-          장바구니로 돌아가기
-        </button>
-      </div>
-    );
-  }
+  const { kakaoResponse, productName, quantity, totalPrice, order } = paymentData;
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-4">
-      <CheckCircleIcon color="success" sx={{ fontSize: 80 }} />
-      <h1 className="text-2xl font-bold mt-4">결제가 성공적으로 완료되었습니다 🎉</h1>
-      <p className="text-gray-600 mt-2">주문이 정상적으로 접수되었습니다.</p>
+    <div className="max-w-4xl mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-4">결제 및 주문 완료</h2>
 
-      <div className="mt-4 text-left">
-        <h2 className="text-lg font-semibold mb-2">주문 내역</h2>
-        <ul className="text-sm text-gray-700">
-          {orderDetails?.items?.map((item, index) => (
-            <li key={index} className="mb-1">
-              - {item.name} / 수량: {item.quantity} / 가격: {item.price}원
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-gray-800 font-semibold">총 결제 금액: {orderDetails.totalAmount}원</p>
-        <p className="text-gray-500 text-sm mt-1">결제번호 (TID): {orderDetails.tid}</p>
-      </div>
+      {/* ✅ 결제 정보 */}
+      <section className="mb-6 p-4 border rounded">
+        <h3 className="text-lg font-semibold mb-2">결제 정보</h3>
+        <p><strong>결제 수단:</strong> {kakaoResponse.payment_method_type}</p>
+        <p><strong>상품명:</strong> {kakaoResponse.item_name}</p>
+        <p><strong>결제 금액:</strong> {kakaoResponse.amount?.total.toLocaleString()}원</p>
+        <p><strong>결제 시각:</strong> {new Date(kakaoResponse.approved_at).toLocaleString()}</p>
+      </section>
 
-      <button
-        onClick={() => navigate('/orders')}
-        className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-      >
-        주문 내역 보기
-      </button>
+      {/* ✅ 주문 정보 */}
+      <section className="mb-6 p-4 border rounded">
+        <h3 className="text-lg font-semibold mb-2">주문 정보</h3>
+        <p><strong>주문자:</strong> {order.email}</p>
+        <p><strong>주문일자:</strong> {order.orderDate}</p>
+        <p><strong>주문 상태:</strong> {order.orderStatus}</p>
+        <p><strong>총 금액:</strong> {order.totalAmount.toLocaleString()}원</p>
+      </section>
+
+      {/* ✅ 배송지 정보 (예시: addressId로 배송지 조회하거나 서버에서 address 포함하도록 수정 필요) */}
+      <section className="mb-6 p-4 border rounded bg-gray-50">
+        <h3 className="text-lg font-semibold mb-2">배송지 정보</h3>
+        <p><strong>도시:</strong> {order.address?.city}</p>
+        <p><strong>도로명 주소:</strong> {order.address?.street}</p>
+        <p><strong>우편번호:</strong> {order.address?.pincode}</p>
+      </section>
+
+      {/* ✅ 주문 상품 이미지 및 상세 정보 */}
+      <section className="p-4 border rounded">
+        <h3 className="text-lg font-semibold mb-2">주문 상품</h3>
+        {order.orderItems.map((item) => (
+          <div key={item.orderItemId} className="mb-4 flex gap-4 items-center">
+            <img
+              src={`http://localhost:8080/images/${item.product.image}`}
+              alt={item.product.productName}
+              className="w-20 h-20 border rounded"
+            />
+            <div>
+              <p><strong>{item.product.productName}</strong></p>
+              <p>{item.quantity}개 × {item.product.specialPrice.toLocaleString()}원</p>
+              <p><strong>총:</strong> {item.orderedProductPrice.toLocaleString()}원</p>
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 };
