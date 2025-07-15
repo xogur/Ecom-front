@@ -14,6 +14,7 @@ import Register from './components/auth/Register'
 import Checkout from './components/checkout/Checkout'
 import PaymentSuccess from './components/checkout/PaymentSuccess';
 import PaymentConfirmation from './components/checkout/PaymentConfirmation'
+import AdminPage from './components/admin/AdminPage';
 
 
 
@@ -33,6 +34,7 @@ function App() {
           <Route path='/' element={<PrivateRoute />}>
             <Route path='/checkout' element={ <Checkout />}/>
             <Route path='/order-confirm' element={ <PaymentConfirmation />}/>
+            <Route path="/admin" element={<AdminPage />} />
             
           </Route>
 
