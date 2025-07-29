@@ -108,9 +108,9 @@ const ProductCard = ({
                     })}
                     
                     className={`bg-blue-500 ${isAvailable ? "opacity-100 hover:bg-blue-600" : "opacity-70"}
-                        text-white py-2 px-3 rounded-lg items-center transition-colors duration-300 w-36 flex justify-center`}>
+                        text-white text-sm py-2 px-3 rounded-lg items-center transition-colors duration-300 w-36 flex justify-center`}>
                     <FaShoppingCart className="mr-2"/>
-                    {isAvailable ? "Add to Cart" : "Stock Out"}
+                    {isAvailable ? "카트에 담기" : "품절"}
                 </button>
                 </div>
             )}
