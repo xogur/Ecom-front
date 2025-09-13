@@ -1,5 +1,6 @@
 import api from "../../api/api"
 
+
 export const fetchProducts = (queryString) => async (dispatch) => {
     try {
         dispatch({ type: "IS_FETCHING" });
@@ -48,27 +49,58 @@ export const fetchCategories = () => async (dispatch) => {
 };
 
 
-export const addToCart = (data, qty = 1, toast) => 
-    (dispatch, getState) => {
-        // Find the product
-        const { products } = getState().products;
-        const getProduct = products.find(
-            (item) => item.productId === data.productId
-        );
+// export const addToCart = (data, qty = 1, toast) => 
+//     (dispatch, getState) => {
+//         // Find the product
+//         const { products } = getState().products;
+//         const getProduct = products.find(
+//             (item) => item.productId === data.productId
+//         );
 
-        // Check for stocks
-        const isQuantityExist = getProduct.quantity >= qty;
+//         // Check for stocks
+//         const isQuantityExist = getProduct.quantity >= qty;
 
-        // If in stock -> add
-        if (isQuantityExist) {
-            dispatch({ type: "ADD_CART", payload: {...data, quantity: qty}});
-            toast.success(`${data?.productName} added to the cart`);
-            localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
-        } else {
-            // error
-            toast.error("Out of stock");
-        }
-};
+//         // If in stock -> add
+//         if (isQuantityExist) {
+//             dispatch({ type: "ADD_CART", payload: {...data, quantity: qty}});
+//             toast.success(`${data?.productName} added to the cart`);
+//             localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
+//         } else {
+//             // error
+//             toast.error("Out of stock");
+//         }
+// };
+
+// import api from "../utils/api"; // axios 인스턴스 (baseURL, withCredentials 설정 권장)
+
+export const addToCart = (data, qty = 1, toast) =>
+  async (dispatch, getState) => {
+    try {
+      const quantity = Number(qty) > 0 ? Number(qty) : 1;
+      // ✅ POST + JSON 바디로 전송 (@RequestBody AddToCartRequest와 매칭)
+      // 백엔드: @PostMapping("/cart/addProduct") + @RequestBody { productId, quantity }
+      const payload = {
+        productId: data.productId,
+        quantity,
+      };
+
+      // axios는 객체 전달 시 기본적으로 application/json으로 전송합니다.
+      const { data: serverResponse } = await api.post("/cart/addProduct", payload);
+
+      dispatch({
+        type: "ADD_CART",
+        payload: { ...data, quantity },
+      });
+
+      toast?.success(`${data?.productName} added to the cart`);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to add to cart";
+      toast?.error(msg);
+    }
+  };
 
 
 export const increaseCartQuantity = 
@@ -153,10 +185,24 @@ export const registerNewUser
 };
 
 
-export const logOutUser = (navigate) => (dispatch) => {
-    dispatch({ type:"LOG_OUT" });
+// export const logOutUser = (navigate) => (dispatch) => {
+//     dispatch({ type:"LOG_OUT" });
+//     localStorage.removeItem("auth");
+//     navigate("/login");
+// };
+
+export const logOutUser = (navigate) => async (dispatch) => {
+  try {
+    await api.post("/auth/signout"); // 서버가 여러 Set-Cookie(Max-Age=0) 내려줌
+    toast.success("Signed out");
+  } catch {
+    toast.error("Logout request failed. Clearing local state...");
+  } finally {
+    dispatch({ type: "LOG_OUT" });
     localStorage.removeItem("auth");
-    navigate("/login");
+    try { await persistor.purge?.(); } catch {}
+    navigate("/login", { replace: true });
+  }
 };
 
 export const addUpdateUserAddress =
