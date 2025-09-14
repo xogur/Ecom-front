@@ -24,7 +24,7 @@ const Navbar = () => {
       console.log("🔐 user.roles:", user.roles);
     }
   }, [user]);
-  
+
   useEffect(() => {
   if (isAuthenticated) {
     dispatch(getUserCart());
@@ -91,20 +91,25 @@ const Navbar = () => {
           <li className="font-[500] transition-all duration-150">
             <Link
               className={`${path === "/cart" ? "text-white font-semibold" : "text-gray-200"}`}
-              to={isAuthenticated ? "/cart" : "/login"}   // ★ 로그인 아니면 /login으로
-              state={!isAuthenticated ? { from: "/cart" } : undefined} // 돌아올 곳 기억(선택)
-              replace={!isAuthenticated} // 히스토리 덮기(선택)
+              to={isAuthenticated ? "/cart" : "/login"}
+              state={!isAuthenticated ? { from: "/cart" } : undefined}
+              replace={!isAuthenticated}
               title={isAuthenticated ? "장바구니" : "로그인 후 이용 가능"}
             >
-              <Badge
-                showZero
-                badgeContent={isAuthenticated ? (cart?.length || 0) : 0} // 선택: 비로그인 시 0
-                color="primary"
-                overlap="circular"
-                anchorOrigin={{ vertical: "top", horizontal: "right" }}
-              >
+              {isAuthenticated ? (
+                <Badge
+                  showZero
+                  badgeContent={cart?.length || 0}
+                  color="primary"
+                  overlap="circular"
+                  anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                >
+                  <FaShoppingCart size={25} />
+                </Badge>
+              ) : (
+                // 비로그인: 뱃지 없이 아이콘만
                 <FaShoppingCart size={25} />
-              </Badge>
+              )}
             </Link>
           </li>
 
