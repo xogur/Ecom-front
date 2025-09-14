@@ -1,17 +1,22 @@
 import { Badge } from "@mui/material";
 import { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { FaShoppingCart, FaSignInAlt, FaStore } from "react-icons/fa";
 import { IoIosMenu } from "react-icons/io";
 import { RxCross2 } from "react-icons/rx";
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import UserMenu from "../UserMenu";
+import { getUserCart } from "../../store/actions"
 
 const Navbar = () => {
   const path = useLocation().pathname;
   const [navbarOpen, setNavbarOpen] = useState(false);
   const { user } = useSelector((state) => state.auth);
-  const { cart } = useSelector((state) => state.carts);
+  // const { cart } = useSelector((state) => state.carts);
+  const dispatch = useDispatch();
+  const { cart, totalPrice, status, error } = useSelector((state) => state.carts);
+  const isAuthenticated = !!(user && (user.id ?? user.userId));
 
   // 콘솔에 role 정보 출력 (디버깅용)
   useEffect(() => {
@@ -19,6 +24,12 @@ const Navbar = () => {
       console.log("🔐 user.roles:", user.roles);
     }
   }, [user]);
+  
+  useEffect(() => {
+  if (isAuthenticated) {
+    dispatch(getUserCart());
+  }
+  }, [isAuthenticated, dispatch]);
 
   return (
     <div className="h-[70px] bg-custom-gradient text-white z-50 flex items-center sticky top-0">
@@ -76,17 +87,18 @@ const Navbar = () => {
               Contact
             </Link>
           </li>
-
+              
           <li className="font-[500] transition-all duration-150">
             <Link
-              className={`${
-                path === "/cart" ? "text-white font-semibold" : "text-gray-200"
-              }`}
-              to="/cart"
+              className={`${path === "/cart" ? "text-white font-semibold" : "text-gray-200"}`}
+              to={isAuthenticated ? "/cart" : "/login"}   // ★ 로그인 아니면 /login으로
+              state={!isAuthenticated ? { from: "/cart" } : undefined} // 돌아올 곳 기억(선택)
+              replace={!isAuthenticated} // 히스토리 덮기(선택)
+              title={isAuthenticated ? "장바구니" : "로그인 후 이용 가능"}
             >
               <Badge
                 showZero
-                badgeContent={cart?.length || 0}
+                badgeContent={isAuthenticated ? (cart?.length || 0) : 0} // 선택: 비로그인 시 0
                 color="primary"
                 overlap="circular"
                 anchorOrigin={{ vertical: "top", horizontal: "right" }}

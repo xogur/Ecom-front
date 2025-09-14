@@ -158,7 +158,7 @@ export const authenticateSignInUser
             localStorage.setItem("auth", JSON.stringify(data));
             reset();
             toast.success("Login Success");
-            navigate("/");
+            window.location.replace("/")
         } catch (error) {
             console.log(error);
             toast.error(error?.response?.data?.message || "Internal Server Error");
