@@ -86,7 +86,7 @@ export const addToCart = (data, qty = 1, toast) =>
 
       // axios는 객체 전달 시 기본적으로 application/json으로 전송합니다.
       const { data: serverResponse } = await api.post("/cart/addProduct", payload);
-
+      
       dispatch({
         type: "ADD_CART",
         payload: { ...data, quantity },
@@ -193,14 +193,28 @@ export const registerNewUser
 
 export const logOutUser = (navigate) => async (dispatch) => {
   try {
-    await api.post("/auth/signout"); // 서버가 여러 Set-Cookie(Max-Age=0) 내려줌
+    await api.post("/auth/signout"); // 서버가 쿠키 삭제 + 세션 무효화
     toast.success("Signed out");
   } catch {
     toast.error("Logout request failed. Clearing local state...");
   } finally {
+    // 1) 클라이언트 상태 초기화
     dispatch({ type: "LOG_OUT" });
+    // 장바구니 등도 같이 비우려면:
+    // dispatch({ type: "CLEAR_CART" });
+
     localStorage.removeItem("auth");
-    try { await persistor.purge?.(); } catch {}
+    try { await persistor?.purge?.(); } catch {}
+
+    // 2) 하드 리로드로 완전 초기화
+    //    - 라우터 상태/메모리/캐시가 모두 초기화됨
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+      // window.location.replace 사용 시 아래 navigate는 불필요
+      return;
+    }
+
+    // (fallback) SSR 등 특수 환경이면 기존 navigate로 이동만
     navigate("/login", { replace: true });
   }
 };
@@ -305,24 +319,32 @@ export const createUserCart = (sendCartItems) => async (dispatch, getState) => {
 };
 
 
-export const getUserCart = () => async (dispatch, getState) => {
-    try {
-        dispatch({ type: "IS_FETCHING" });
-        const { data } = await api.get('/carts/users/cart');
-        
-        dispatch({
-            type: "GET_USER_CART_PRODUCTS",
-            payload: data.products,
-            totalPrice: data.totalPrice,
-            cartId: data.cartId
-        })
-        localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
-        dispatch({ type: "IS_SUCCESS" });
-    } catch (error) {
-        console.log(error);
-        dispatch({ 
-            type: "IS_ERROR",
-            payload: error?.response?.data?.message || "Failed to fetch cart items",
-         });
-    }
+export const getUserCart = () => async (dispatch) => {
+  try {
+    dispatch({ type: "IS_FETCHING" });
+    const { data } = await api.get("/carts/users/cart");
+    // 백엔드 응답이 { cartId, totalPrice, cartItems: [...] } 라고 가정
+    const products = data.products ?? data.cartItems ?? [];
+    const totalPrice = typeof data.totalPrice === "number"
+      ? data.totalPrice
+      : products.reduce(
+          (acc, cur) =>
+            acc +
+            Number(cur?.specialPrice ?? cur?.unitPrice ?? 0) *
+              Number(cur?.quantity ?? 0),
+          0
+        );
+
+    dispatch({
+      type: "GET_USER_CART_PRODUCTS",
+      payload: products,
+      totalPrice,
+      cartId: data.cartId ?? null,
+    });
+  } catch (e) {
+    dispatch({
+      type: "IS_ERROR",
+      payload: e?.response?.data?.message || "Failed to fetch cart items",
+    });
+  }
 };
