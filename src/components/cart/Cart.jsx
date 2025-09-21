@@ -121,12 +121,12 @@ const Cart = () => {
       </div>
 
       {/* ✅ RAW 응답 상태 덤프 (임시 디버깅용) */}
-      <div className="mt-8">
+      {/* <div className="mt-8">
         <h3 className="font-semibold mb-2">[Debug] Cart State Dump</h3>
         <pre className="text-xs bg-slate-100 p-3 rounded w-full overflow-auto">
 {JSON.stringify({ status, error, cart, totalPrice, subtotal }, null, 2)}
         </pre>
-      </div>
+      </div> */}
     </div>
   );
 };
