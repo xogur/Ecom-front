@@ -76,13 +76,14 @@ const OrderSummary = ({ totalPrice = 0, cart = [], address, paymentMethod, onPre
     setPointsInput(raw ? Number(raw) : 0);
   };
 
-  // 최대치 사용: 서버가 balance/total 기준으로 다시 클램프
+  // ✅ Use Max: 보유 포인트와 주문 금액 중 작은 값으로 제한
   const useMax = () => {
-    // 미리보기에서 balance가 보이면 그 값으로 한 번 더 요청 (UX 보정)
-    const optimisticMax = preview?.myBalanceBefore ?? pointsInput;
+    const balance = Number(preview?.myBalanceBefore ?? 0);
+    const orderTotal = Number.isFinite(totalPrice) ? Number(totalPrice) : 0;
+    const optimisticMax = Math.max(0, Math.min(balance, orderTotal)); // <= 핵심
     setPointsInput(optimisticMax);
     // 즉시 미리보기 갱신
-    callPreview(totalPrice, optimisticMax);
+    callPreview(orderTotal, optimisticMax);
   };
 
   return (
@@ -224,8 +225,6 @@ function Row({ k, v, r }) {
 
 function formatCurrency(n) {
   const x = Number(n || 0);
-  // formatPriceCalculation(amount, 1) 는 금액 문자열 반환(프로젝트 함수 재사용 필요 시 교체)
-  // 여기선 간단히 toLocaleString 사용
   return `$${x.toLocaleString()}`;
 }
 
