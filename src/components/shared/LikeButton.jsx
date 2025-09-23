@@ -1,55 +1,112 @@
-import { useEffect, useState } from "react";
-import api from "../../api/api"; // axios 인스턴스
+// src/components/shared/LikeButton.jsx
+import { useEffect, useRef, useState } from "react";
+import api from "../../api/api";
 
-/**
- * props:
- *  - productId: number
- *  - initialCount?: number
- *  - initialLiked?: boolean
- *  - onChange?: (liked, count) => void
- */
-export default function LikeButton({ productId, initialCount = 0, initialLiked = false, onChange }) {
-  const [count, setCount] = useState(initialCount);
-  const [liked, setLiked] = useState(initialLiked);
+export default function LikeButton({
+  productId,
+  initialCount,
+  initialLiked,
+  onChange,
+  autoFetch = true,
+}) {
+  const [count, setCount] = useState(
+    typeof initialCount === "number" ? initialCount : 0
+  );
+  const [liked, setLiked] = useState(!!initialLiked);
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  // ✅ 부모가 내려준 배치 결과가 바뀌면 내부 state도 즉시 동기화
+  useEffect(() => {
+    setCount(typeof initialCount === "number" ? initialCount : 0);
+  }, [initialCount]);
 
   useEffect(() => {
-    // 서버에서 최신 liked & count를 가져오고 싶다면 여기서 호출
-    const fetch = async () => {
+    setLiked(!!initialLiked);
+  }, [initialLiked]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    // 부모가 둘 다 내려줬으면(fetch 생략) 자동조회 하지 않음
+    const hasHydrated =
+      typeof initialCount === "number" && typeof initialLiked === "boolean";
+    if (!autoFetch || hasHydrated) return;
+
+    const controller = new AbortController();
+
+    (async () => {
       try {
         const [cRes, mRes] = await Promise.all([
-          api.get(`/products/${productId}/like/count`),
-          api.get(`/products/${productId}/like/me`).catch(() => ({ data: { liked: false } })) // 비로그인 등
+          api.get(`/products/${productId}/like/count`, {
+            withCredentials: true,
+            signal: controller.signal,
+          }),
+          api
+            .get(`/products/${productId}/like/me`, {
+              withCredentials: true,
+              signal: controller.signal,
+            })
+            .catch(() => ({ data: { liked: false } })),
         ]);
+        if (!mountedRef.current) return;
         setCount(Number(cRes?.data?.count ?? 0));
         setLiked(!!mRes?.data?.liked);
-      } catch (e) {
-        // 무시 또는 로깅
+      } catch {
+        // ignore
       }
+    })();
+
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
     };
-    fetch();
-  }, [productId]);
+  }, [productId, autoFetch, initialCount, initialLiked]);
 
   const toggle = async () => {
     if (loading) return;
+
+    const prevLiked = liked;
+    const prevCount = count;
+    const optimisticLiked = !liked;
+    const optimisticCount = liked ? Math.max(0, count - 1) : count + 1;
+
+    setLiked(optimisticLiked);
+    setCount(optimisticCount);
     setLoading(true);
+
     try {
-      const res = await api.post(`/products/${productId}/like/toggle`);
+      const res = await api.post(
+        `/products/${productId}/like/toggle`,
+        null,
+        { withCredentials: true }
+      );
       const newLiked = !!res?.data?.liked;
-      const newCount = Number(res?.data?.count ?? 0);
+      const newCount = Number(res?.data?.count ?? optimisticCount);
+
+      if (!mountedRef.current) return;
       setLiked(newLiked);
       setCount(newCount);
       onChange && onChange(newLiked, newCount);
     } catch (e) {
-      // 로그인 필요/에러 처리
-      // alert("로그인이 필요합니다.");
+      if (!mountedRef.current) return;
+      setLiked(prevLiked);
+      setCount(prevCount);
+
+      const status = e?.response?.status;
+      if (status === 401 || status === 403) {
+        const from = encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
+        window.location.assign(`/login?from=${from}`);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={loading}
       style={{
@@ -61,12 +118,13 @@ export default function LikeButton({ productId, initialCount = 0, initialLiked =
         border: "1px solid #e5e7eb",
         background: liked ? "#fee2e2" : "#fff",
         color: liked ? "#dc2626" : "#111827",
-        cursor: "pointer",
+        cursor: loading ? "not-allowed" : "pointer",
+        opacity: loading ? 0.75 : 1,
       }}
       aria-pressed={liked}
+      aria-busy={loading}
       title={liked ? "좋아요 취소" : "좋아요"}
     >
-      {/* 심플한 하트 SVG (채움/빈하트 전환) */}
       {liked ? (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#dc2626" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 21s-6.716-4.692-9.428-7.404C1.343 12.366 1 11.209 1 10a6 6 0 0 1 10-4 6 6 0 0 1 10 4c0 1.209-.343 2.366-1.572 3.596C18.716 16.308 12 21 12 21z"/>

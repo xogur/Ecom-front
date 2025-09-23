@@ -6,8 +6,8 @@ import truncateText from "../../utils/truncateText";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../store/actions";
 import toast from "react-hot-toast";
-
-// ✅ 좋아요 버튼 컴포넌트(앞서 만든 공용 컴포넌트)
+// ❌ 배치 훅은 부모에서 호출 → 여기선 제거
+// import useBatchProductLikes from "../../utils/useBatchProductLikes"
 import LikeButton from "./LikeButton";
 
 const ProductCard = ({
@@ -20,6 +20,11 @@ const ProductCard = ({
   discount,
   specialPrice,
   about = false,
+
+  // ✅ 배치 호출 결과를 부모에서 주입
+  likeCount = 0,
+  liked = false,
+  onLikeChange, // (id, nextLiked, nextCount) => void
 }) => {
   const [openProductViewModal, setOpenProductViewModal] = useState(false);
   const btnLoader = false;
@@ -66,7 +71,15 @@ const ProductCard = ({
           className="absolute top-2 right-2"
           onClick={(e) => e.stopPropagation()} // 이미지 클릭(모달)과 이벤트 분리
         >
-          <LikeButton productId={productId} />
+          <LikeButton
+            productId={productId}
+            initialCount={likeCount}
+            initialLiked={liked}
+            autoFetch={false} // ✅ 추가 fetch 금지 (배치 값만 사용)
+            onChange={(nextLiked, nextCount) =>
+              onLikeChange && onLikeChange(productId, nextLiked, nextCount)
+            }
+          />
         </div>
       </div>
 
