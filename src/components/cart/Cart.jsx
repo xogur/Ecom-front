@@ -9,7 +9,9 @@ import { getUserCart } from "../../store/actions"
 
 const Cart = () => {
   const dispatch = useDispatch();
-  const { cart, totalPrice, status, error } = useSelector((state) => state.carts);
+  const { cart, cartId, totalPrice, status, error } = useSelector(
+    (state) => state.carts
+  );
 
   // 1) 마운트 시 GET
   useEffect(() => {
@@ -92,7 +94,7 @@ const Cart = () => {
 
       <div>
         {cart.map((item, i) => (
-          <ItemContent key={item.productId ?? i} {...item} />
+          <ItemContent key={item.productId ?? i} {...item} cartId={cartId}/>
         ))}
       </div>
 

@@ -141,11 +141,42 @@ export const decreaseCartQuantity =
         localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
     }
 
-export const removeFromCart =  (data, toast) => (dispatch, getState) => {
-    dispatch({type: "REMOVE_CART", payload: data });
-    toast.success(`${data.productName} removed from cart`);
-    localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
-}
+export const removeFromCart =
+  ({ cartId, productId, productName }, toast) =>
+  async (dispatch, getState) => {
+    try {
+      // 1) 서버에 삭제 요청
+      await api.delete(`/carts/${cartId}/product/${productId}`);
+
+      // 2) 스토어에서 삭제 반영 (기존 리듀서의 REMOVE_CART 규약에 맞춰 payload 전달)
+      //    - 기존 코드가 data 전체를 넘기던 형태였다면,
+      //      리듀서가 productId만으로 삭제할 수 있게 수정했거나
+      //      아래처럼 동일 구조로 맞춰주세요.
+      dispatch({
+        type: "REMOVE_CART",
+        payload: { productId }, // 리듀서가 productId로 삭제하도록 권장
+      });
+
+      // 3) 로컬스토리지 동기화
+      localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
+
+      // 4) 알림
+      if (toast) toast.success(`${productName} removed from cart`);
+    } catch (error) {
+      // 서버/네트워크 에러 처리
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to remove item";
+      if (toast) toast.error(msg);
+
+      // 필요 시 실패 액션 디스패치 (옵션)
+      dispatch({
+        type: "REMOVE_CART_ERROR",
+        payload: { productId, message: msg },
+      });
+    }
+  };
 
 
 

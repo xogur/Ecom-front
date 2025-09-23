@@ -10,7 +10,6 @@ import {
 import toast from "react-hot-toast";
 import { formatPrice } from "../../utils/formatPrice";
 import truncateText from "../../utils/truncateText";
-import.meta.env.VITE_BACK_END_URL
 
 const baseURL = import.meta.env.VITE_BACK_END_URL
 
@@ -42,8 +41,17 @@ const ItemContent = ({
     }
   };
 
-  const removeItemFromCart = (cartItems) => {
-    dispatch(removeFromCart(cartItems, toast));
+  const handleRemove = () => {
+    dispatch(
+      removeFromCart(
+        {
+          cartId,
+          productId,
+          productName,
+        },
+        toast
+      )
+    );
   };
 
   return (
@@ -64,17 +72,7 @@ const ItemContent = ({
 
           <div className="flex items-start gap-5 mt-3">
             <button
-              onClick={() =>
-                removeItemFromCart({
-                  image,
-                  productName,
-                  description,
-                  specialPrice,
-                  price,
-                  productId,
-                  quantity: currentQuantity, // ✅ 수정된 부분
-                })
-              }
+              onClick={handleRemove}
               className="flex items-center font-semibold space-x-2 px-4 py-1 text-xs border border-rose-600 text-rose-600 rounded-md hover:bg-red-50 transition-colors duration-200"
             >
               <HiOutlineTrash size={16} className="text-rose-600" />
