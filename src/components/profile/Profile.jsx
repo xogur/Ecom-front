@@ -2,7 +2,12 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api from "../../api/api";
 import { AiFillHeart } from "react-icons/ai";
-import ProductViewModal from "../shared/ProductViewModal"; // ✅ 모달 추가
+import ProductViewModal from "../shared/ProductViewModal";
+
+// ✅ 장바구니 추가에 필요한 Redux/액션/토스트
+import { useDispatch } from "react-redux";
+import { addToCart } from "../../store/actions";
+import toast from "react-hot-toast";
 
 const PAGE_SIZE = 12;
 const baseURL = import.meta.env.VITE_BACK_END_URL;
@@ -14,6 +19,8 @@ const fmtMoney = (n) => {
 const truncate = (s, len = 50) => (!s ? "" : s.length > len ? s.slice(0, len) + "…" : s);
 
 export default function Profile() {
+  const dispatch = useDispatch();
+
   // ✅ 포인트 상태
   const [pointBalance, setPointBalance] = useState(0);
   const [pointLoading, setPointLoading] = useState(false);
@@ -30,12 +37,15 @@ export default function Profile() {
   const [openProductViewModal, setOpenProductViewModal] = useState(false);
   const [selectedViewProduct, setSelectedViewProduct] = useState(null);
 
+  // ✅ 카드별 '장바구니 담는 중' 상태 (productId → boolean)
+  const [adding, setAdding] = useState({});
+
   // ✅ 포인트 불러오기
   const fetchPointBalance = async () => {
     try {
       setPointLoading(true);
       setPointErr("");
-      const res = await api.get("/points/balance"); // withCredentials는 api 인스턴스에서 처리
+      const res = await api.get("/points/balance");
       const bal = Number(res?.data?.balance ?? res?.data ?? 0);
       setPointBalance(Number.isFinite(bal) ? bal : 0);
     } catch (e) {
@@ -145,6 +155,50 @@ export default function Profile() {
     setOpenProductViewModal(true);
   }, []);
 
+  // ✅ 좋아요 카드 → 장바구니 담기
+  const handleAddToCart = useCallback(
+    async (p) => {
+      const {
+        productId,
+        productName,
+        image,
+        description,
+        price,
+        specialPrice,
+      } = p;
+
+      if (!productId) {
+        toast.error("상품 정보가 올바르지 않습니다.");
+        return;
+      }
+
+      // 개별 카드 로딩 on
+      setAdding((prev) => ({ ...prev, [productId]: true }));
+      try {
+        // 주의: image는 원본 필드(파일명/상대경로)를 그대로 전달해야
+        // 장바구니 화면에서 `${baseURL}/images/${image}`로 올바르게 표시됩니다.
+        await dispatch(
+          addToCart(
+            {
+              productId,
+              productName,
+              image,          // ⚠️ 정규화하지 않음 (장바구니 렌더 규약 준수)
+              description,
+              price,
+              specialPrice,
+            },
+            1,
+            toast
+          )
+        );
+      } finally {
+        // 개별 카드 로딩 off
+        setAdding((prev) => ({ ...prev, [productId]: false }));
+      }
+    },
+    [dispatch]
+  );
+
   // 선택된 상품의 재고 여부 (수량 없으면 true로 간주)
   const selectedAvailable =
     typeof selectedViewProduct?.quantity === "number"
@@ -203,6 +257,8 @@ export default function Profile() {
 
           const isAvailable =
             typeof quantity === "number" ? quantity > 0 : true;
+
+          const isAdding = !!adding[productId];
 
           return (
             <div
@@ -271,7 +327,7 @@ export default function Profile() {
                   {truncate(productName, 40)}
                 </h3>
 
-                <div className="mt-auto flex items-end justify-between">
+                <div className="mt-auto flex items-end justify-between gap-2">
                   <div className="flex flex-col">
                     {specialPrice ? (
                       <>
@@ -289,11 +345,21 @@ export default function Profile() {
                     )}
                   </div>
 
-                  {typeof likeCount === "number" && (
-                    <span className="text-xs text-gray-500">
-                      ❤️ {likeCount.toLocaleString()}
-                    </span>
-                  )}
+                  {/* ✅ 바로 장바구니 담기 버튼 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // 모달 열림 방지
+                      handleAddToCart(p);
+                    }}
+                    disabled={!isAvailable || isAdding}
+                    className={`bg-blue-500 ${
+                      isAvailable ? "opacity-100 hover:bg-blue-600" : "opacity-70"
+                    } text-white text-sm py-2 px-3 rounded-lg items-center transition-colors duration-300 w-36 flex justify-center`}
+                    aria-label="장바구니에 추가"
+                    title={isAvailable ? "카트에 담기" : "품절"}
+                  >
+                    {isAdding ? "담는 중…" : "카트에 담기"}
+                  </button>
                 </div>
 
                 {/* (선택) 재고 상태 텍스트 */}
