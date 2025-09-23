@@ -198,6 +198,22 @@ export const authenticateSignInUser
         }
 }
 
+export const authenticateOAuthUser = (toast, navigate) => async (dispatch) => {
+  try {
+    const { data } = await api.get("/auth/user"); // 서버 쿠키로 인증
+    dispatch({ type: "LOGIN_USER", payload: data });
+    localStorage.setItem("auth", JSON.stringify(data));
+    if (toast) toast.success("Login Success");
+    if (navigate) navigate("/", { replace: true });
+    else window.location.replace("/");
+  } catch (error) {
+    console.error(error);
+    if (toast) toast.error(error?.response?.data?.message || "Failed to get user");
+    if (navigate) navigate("/login", { replace: true });
+  }
+};
+
+
 
 export const registerNewUser 
     = (sendData, toast, reset, navigate, setLoader) => async (dispatch) => {
