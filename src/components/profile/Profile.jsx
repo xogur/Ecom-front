@@ -1,7 +1,8 @@
-// src/components/profile/Profile.jsx
-import React, { useEffect, useMemo, useState } from "react";
+// /src/components/profile/Profile.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api from "../../api/api";
 import { AiFillHeart } from "react-icons/ai";
+import ProductViewModal from "../shared/ProductViewModal"; // ✅ 모달 추가
 
 const PAGE_SIZE = 12;
 const baseURL = import.meta.env.VITE_BACK_END_URL;
@@ -25,13 +26,16 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  // ✅ 상품 빠른보기 모달 상태
+  const [openProductViewModal, setOpenProductViewModal] = useState(false);
+  const [selectedViewProduct, setSelectedViewProduct] = useState(null);
+
   // ✅ 포인트 불러오기
   const fetchPointBalance = async () => {
     try {
       setPointLoading(true);
       setPointErr("");
       const res = await api.get("/points/balance"); // withCredentials는 api 인스턴스에서 처리
-      // BalanceRes가 { balance: number } 형태라고 가정
       const bal = Number(res?.data?.balance ?? res?.data ?? 0);
       setPointBalance(Number.isFinite(bal) ? bal : 0);
     } catch (e) {
@@ -54,7 +58,7 @@ export default function Profile() {
       const data = res?.data ?? {};
       const content = Array.isArray(data.content) ? data.content : [];
 
-      // ✅ totalPages 우선 사용, 없으면 totalElements/size 로 보정
+      // totalPages 우선 사용, 없으면 totalElements/size 로 보정
       const sizeFromServer = Number(data.size) || PAGE_SIZE;
       let tp = Number(data.totalPages);
       if (!Number.isFinite(tp) || tp < 1) {
@@ -91,6 +95,7 @@ export default function Profile() {
   // 좋아요 토글(내 목록에서 제거)
   const handleToggle = async (productId) => {
     try {
+      // 낙관적 업데이트
       setItems((prev) => prev.filter((p) => p.productId !== productId));
       await api.post(`/products/${productId}/like/toggle`);
       // 현재 페이지가 비면 이전 페이지로
@@ -102,9 +107,49 @@ export default function Profile() {
       });
     } catch (e) {
       console.error(e);
+      // 실패 시 서버 상태와 재동기화
       fetchLiked();
     }
   };
+
+  // ✅ 카드 클릭 → 상품 빠른보기 모달 열기
+  const handleProductView = useCallback((p) => {
+    const {
+      productId,
+      productName,
+      image,
+      description,
+      quantity,
+      price,
+      discount,
+      specialPrice,
+    } = p;
+
+    const normalizedImage = image
+      ? image.startsWith("http")
+        ? image
+        : `${baseURL}/images/${image}`
+      : undefined;
+
+    setSelectedViewProduct({
+      id: productId,        // 모달에서 id 사용
+      productId,
+      productName,
+      image: normalizedImage,
+      description,
+      quantity,
+      price,
+      discount,
+      specialPrice,
+    });
+    setOpenProductViewModal(true);
+  }, []);
+
+  // 선택된 상품의 재고 여부 (수량 없으면 true로 간주)
+  const selectedAvailable =
+    typeof selectedViewProduct?.quantity === "number"
+      ? selectedViewProduct.quantity > 0
+      : true;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -138,19 +183,48 @@ export default function Profile() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {items.map((p) => {
-          const { productId, productName, image, price, specialPrice, likeCount } = p;
+          const {
+            productId,
+            productName,
+            image,
+            price,
+            specialPrice,
+            likeCount,
+            description,
+            quantity,
+            discount,
+          } = p;
+
           const imgSrc = image
             ? image.startsWith("http")
               ? image
               : `${baseURL}/images/${image}`
             : undefined;
 
+          const isAvailable =
+            typeof quantity === "number" ? quantity > 0 : true;
+
           return (
             <div
               key={productId}
               className="border rounded-lg shadow-sm hover:shadow-md overflow-hidden transition-shadow duration-200 flex flex-col"
             >
-              <div className="relative aspect-[3/2] bg-gray-50">
+              {/* ✅ 이미지 클릭 → 모달 */}
+              <div
+                className="relative aspect-[3/2] bg-gray-50 cursor-pointer"
+                onClick={() =>
+                  handleProductView({
+                    productId,
+                    productName,
+                    image,
+                    description,
+                    quantity,
+                    price,
+                    discount,
+                    specialPrice,
+                  })
+                }
+              >
                 {imgSrc ? (
                   <img
                     src={imgSrc}
@@ -164,8 +238,12 @@ export default function Profile() {
                   </div>
                 )}
 
+                {/* 좋아요 토글(모달 클릭과 이벤트 분리) */}
                 <button
-                  onClick={() => handleToggle(productId)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggle(productId);
+                  }}
                   className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-2 shadow"
                   title="좋아요 취소"
                 >
@@ -174,7 +252,22 @@ export default function Profile() {
               </div>
 
               <div className="p-3 flex-1 flex flex-col">
-                <h3 className="text-sm font-semibold mb-1">
+                {/* ✅ 제목 클릭 → 모달 */}
+                <h3
+                  className="text-sm font-semibold mb-1 cursor-pointer hover:underline"
+                  onClick={() =>
+                    handleProductView({
+                      productId,
+                      productName,
+                      image,
+                      description,
+                      quantity,
+                      price,
+                      discount,
+                      specialPrice,
+                    })
+                  }
+                >
                   {truncate(productName, 40)}
                 </h3>
 
@@ -202,21 +295,32 @@ export default function Profile() {
                     </span>
                   )}
                 </div>
+
+                {/* (선택) 재고 상태 텍스트 */}
+                {!isAvailable && (
+                  <div className="text-xs text-rose-600 mt-1">품절</div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
+      {/* ✅ 상품 빠른보기 모달 */}
+      <ProductViewModal
+        open={openProductViewModal}
+        setOpen={setOpenProductViewModal}
+        product={selectedViewProduct || {}} // 방어
+        isAvailable={selectedAvailable}
+      />
+
       {/* ✅ 전체 페이지 숫자 노출 + 이전/다음 */}
       {totalPages > 1 && (
         <div className="flex flex-wrap items-center gap-2 mt-6">
-          {/* 현재 페이지 표시 */}
           <span className="text-sm text-gray-600 mr-2">
             페이지 {pageNumber + 1} / {totalPages}
           </span>
 
-          {/* 이전 */}
           <button
             onClick={() => setPageNumber((p) => Math.max(0, p - 1))}
             disabled={pageNumber === 0}
@@ -225,7 +329,6 @@ export default function Profile() {
             이전
           </button>
 
-          {/* 숫자 버튼들 */}
           {pages.map((p) => {
             const active = pageNumber === p - 1;
             return (
@@ -244,7 +347,6 @@ export default function Profile() {
             );
           })}
 
-          {/* 다음 */}
           <button
             onClick={() => setPageNumber((p) => Math.min(totalPages - 1, p + 1))}
             disabled={pageNumber >= totalPages - 1}
