@@ -147,14 +147,47 @@ export const increaseCartQuantity =
 
 
 
-export const decreaseCartQuantity = 
-    (data, newQuantity) => (dispatch, getState) => {
-        dispatch({
-            type: "ADD_CART",
-            payload: {...data, quantity: newQuantity},
-        });
-        localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
+export const decreaseCartQuantity =
+  (data, toast, currentQuantity, setCurrentQuantity) =>
+  async (dispatch) => {
+    const productId = data?.productId;
+    if (!productId) {
+      toast?.error("상품 ID가 없습니다.");
+      return;
     }
+
+    try {
+      const res = await api.put(
+        `/cart/products/${productId}/quantity/delete`,
+        null,
+        { withCredentials: true }
+      );
+
+      const cart = res?.data;
+
+      // 서버가 내려준 CartDTO로 스토어 갱신
+      dispatch({ type: "GET_CART", payload: cart });
+
+      // 해당 상품의 최신 수량을 컴포넌트 state에도 반영
+      const updatedItem = cart?.products?.find((p) => p.productId === productId);
+      if (updatedItem && typeof updatedItem.quantity === "number") {
+        setCurrentQuantity?.(updatedItem.quantity);
+        toast?.success("수량을 1 감소했습니다.");
+      } else {
+        // 수량이 0이 되어 품목이 제거된 경우
+        setCurrentQuantity?.(0);
+        toast?.success("장바구니에서 품목이 제거되었습니다.");
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        toast?.error("로그인이 필요합니다.");
+      } else {
+        const msg = err?.response?.data?.message || "장바구니 업데이트 실패";
+        toast?.error(msg);
+      }
+    }
+  };
 
 export const removeFromCart =
   ({ cartId, productId, productName }, toast) =>
