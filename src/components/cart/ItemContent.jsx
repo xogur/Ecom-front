@@ -37,7 +37,7 @@ const ItemContent = ({
     if (currentQuantity > 1) {
       const newQuantity = currentQuantity - 1;
       setCurrentQuantity(newQuantity);
-      dispatch(decreaseCartQuantity(cartItems, newQuantity));
+      dispatch(decreaseCartQuantity(cartItems, toast, currentQuantity, setCurrentQuantity));
     }
   };
 

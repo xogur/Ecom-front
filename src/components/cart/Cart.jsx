@@ -1,6 +1,6 @@
 import { MdArrowBack, MdShoppingCart } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import ItemContent from "./ItemContent";
 import CartEmpty from "./CartEmpty";
@@ -12,6 +12,8 @@ const Cart = () => {
   const { cart, cartId, totalPrice, status, error } = useSelector(
     (state) => state.carts
   );
+
+  const subtotal = useSelector((s) => s.carts.totalPrice);
 
   // 1) 마운트 시 GET
   useEffect(() => {
@@ -27,16 +29,27 @@ const Cart = () => {
     console.log("[Cart] total :", totalPrice);
   }, [status, error, cart, totalPrice]);
 
-  const subtotal = useMemo(() => {
-    if (typeof totalPrice === "number") return totalPrice;
-    return (cart || []).reduce(
-      (acc, cur) =>
-        acc +
-        Number(cur?.specialPrice ?? cur?.unitPrice ?? 0) *
-          Number(cur?.quantity ?? 0),
-      0
-    );
-  }, [cart, totalPrice]);
+  
+
+//   const subtotal = useMemo(() => {
+//   // 백엔드에서 총액을 주면 우선 사용
+//   if (typeof totalPrice === "number") return totalPrice;
+
+//   // 없으면 클라이언트에서 계산
+//   if (!Array.isArray(cart)) return 0;
+
+//   return cart.reduce((acc, item) => {
+//     const unit = Number(
+//       item?.specialPrice ??
+//       item?.unitPrice ??
+//       item?.productPrice ?? // 서버 DTO가 이 이름일 수도 있음
+//       item?.price ??
+//       0
+//     );
+//     const qty = Number(item?.quantity ?? 0);
+//     return acc + unit * qty;
+//   }, 0);
+// }, [cart, totalPrice]);
 
   // 로딩/에러/빈 카트 분기 (필요시 유지)
   if (status === "loading") {
