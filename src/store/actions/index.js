@@ -103,32 +103,47 @@ export const addToCart = (data, qty = 1, toast) =>
   };
 
 
-export const increaseCartQuantity = 
-    (data, toast, currentQuantity, setCurrentQuantity) =>
-    (dispatch, getState) => {
-        // Find the product
-        const { products } = getState().products;
-        
-        const getProduct = products.find(
-            (item) => item.productId === data.productId
-        );
+export const increaseCartQuantity =
+  (data, toast, currentQuantity, setCurrentQuantity) => 
+  async (dispatch, getState) => {
+    const productId = data?.productId;
+    if (!productId) {
+      toast?.error("상품 ID가 없습니다.");
+      return;
+    }
 
-        const isQuantityExist = getProduct.quantity >= currentQuantity + 1;
+    try {
+      // operation: "delete" 이외는 +1 이므로 "add"로 호출
+      // 클래스 레벨이 "/api/carts"라고 가정하면 아래 경로가 최종 "/api/carts/cart/products/{id}/quantity/add"가 됩니다.
+      const res = await api.put(
+        `/cart/products/${productId}/quantity/add`,
+        null,
+        { withCredentials: true }
+      );
 
-        if (isQuantityExist) {
-            const newQuantity = currentQuantity + 1;
-            setCurrentQuantity(newQuantity);
+      const cart = res?.data;
 
-            dispatch({
-                type: "ADD_CART",
-                payload: {...data, quantity: newQuantity + 1 },
-            });
-            localStorage.setItem("cartItems", JSON.stringify(getState().carts.cart));
-        } else {
-            toast.error("Quantity Reached to Limit");
-        }
+      // 서버가 내려준 CartDTO로 스토어 동기화
+      // 프로젝트에서 카트 갱신 액션 타입을 "GET_CART"/"SET_CART" 중 무엇을 쓰는지에 맞춰 사용하세요.
+      dispatch({ type: "GET_CART", payload: cart });
 
-    };
+      // 방금 증가시킨 상품의 최신 수량을 컴포넌트 state에도 반영 (있으면)
+      const updatedItem = cart?.products?.find(p => p.productId === productId);
+      if (updatedItem && typeof updatedItem.quantity === "number") {
+        setCurrentQuantity?.(updatedItem.quantity);
+      }
+
+      toast?.success("수량을 1 증가했습니다.");
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        toast?.error("로그인이 필요합니다.");
+      } else {
+        const msg = err?.response?.data?.message || "장바구니 업데이트 실패";
+        toast?.error(msg);
+      }
+    }
+  };
 
 
 
