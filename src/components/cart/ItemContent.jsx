@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { HiOutlineTrash } from "react-icons/hi";
 import SetQuantity from "./SetQuantity";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   decreaseCartQuantity,
   increaseCartQuantity,
@@ -11,34 +10,66 @@ import toast from "react-hot-toast";
 import { formatPrice } from "../../utils/formatPrice";
 import truncateText from "../../utils/truncateText";
 
-const baseURL = import.meta.env.VITE_BACK_END_URL
+const baseURL = import.meta.env.VITE_BACK_END_URL;
 
 const ItemContent = ({
   productId,
   productName,
   image,
   description,
-  quantity,
+  quantity,       // ✅ 부모에서 내려준 최신 수량
   price,
   discount,
   specialPrice,
   cartId,
 }) => {
-  const [currentQuantity, setCurrentQuantity] = useState(quantity);
   const dispatch = useDispatch();
 
-  const handleQtyIncrease = (cartItems) => {
+  // ✅ 혹시 부모 props가 늦게 올 때도 스토어에 반영된 최신 수량을 우선 사용
+  const qtyFromStore = useSelector(
+    (s) =>
+      s.carts.cart.find((i) => String(i.productId) === String(productId))
+        ?.quantity
+  );
+  const currentQuantity = Number(
+    qtyFromStore ?? quantity ?? 0 // 스토어 → props → 0 순으로 fallback
+  );
+
+  const handleQtyIncrease = () => {
     dispatch(
-      increaseCartQuantity(cartItems, toast, currentQuantity, setCurrentQuantity)
+      increaseCartQuantity(
+        {
+          image,
+          productName,
+          description,
+          specialPrice,
+          price,
+          productId,
+          quantity: currentQuantity, // ✅ 넘겨받은 값 사용
+        },
+        toast
+      )
     );
   };
 
-  const handleQtyDecrease = (cartItems) => {
-    if (currentQuantity > 1) {
-      const newQuantity = currentQuantity - 1;
-      setCurrentQuantity(newQuantity);
-      dispatch(decreaseCartQuantity(cartItems, toast, currentQuantity, setCurrentQuantity));
-    }
+  const handleQtyDecrease = () => {
+    // 0 미만 방지(서버가 0에서 삭제 처리한다면 0까지 허용해도 됨)
+    if (currentQuantity <= 0) return;
+
+    dispatch(
+      decreaseCartQuantity(
+        {
+          image,
+          productName,
+          description,
+          specialPrice,
+          price,
+          productId,
+          quantity: currentQuantity, // ✅ 넘겨받은 값 사용
+        },
+        toast
+      )
+    );
   };
 
   const handleRemove = () => {
@@ -53,6 +84,8 @@ const ItemContent = ({
       )
     );
   };
+
+  const unit = Number(specialPrice ?? price ?? 0);
 
   return (
     <div className="grid md:grid-cols-5 grid-cols-4 md:text-md text-sm gap-4 items-center border-[1px] border-slate-200 rounded-md lg:px-4 py-4 p-2">
@@ -83,40 +116,20 @@ const ItemContent = ({
       </div>
 
       <div className="justify-self-center lg:text-[17px] text-sm text-slate-600 font-semibold">
-        {formatPrice(Number(specialPrice))}
+        {formatPrice(unit)}
       </div>
 
       <div className="justify-self-center">
         <SetQuantity
-          quantity={currentQuantity}
+          quantity={currentQuantity}      // ✅ 화면 표시도 props/스토어 기반
           cardCounter={true}
-          handeQtyIncrease={() =>
-            handleQtyIncrease({
-              image,
-              productName,
-              description,
-              specialPrice,
-              price,
-              productId,
-              quantity: currentQuantity, // ✅ 수정된 부분
-            })
-          }
-          handleQtyDecrease={() =>
-            handleQtyDecrease({
-              image,
-              productName,
-              description,
-              specialPrice,
-              price,
-              productId,
-              quantity: currentQuantity, // ✅ 수정된 부분
-            })
-          }
+          handeQtyIncrease={handleQtyIncrease}
+          handleQtyDecrease={handleQtyDecrease}
         />
       </div>
 
       <div className="justify-self-center lg:text-[17px] text-sm text-slate-600 font-semibold">
-        {formatPrice(Number(currentQuantity) * Number(specialPrice))}
+        {formatPrice(currentQuantity * unit)}
       </div>
     </div>
   );

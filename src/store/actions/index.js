@@ -103,122 +103,45 @@ export const addToCart = (data, qty = 1, toast) =>
   };
 
 
-export const increaseCartQuantity =
-  (data, toast, currentQuantity, setCurrentQuantity) =>
-  async (dispatch, getState) => {
-    const productId = data?.productId;
-    if (!productId) {
-      toast?.error("상품 ID가 없습니다.");
-      return;
-    }
+export const increaseCartQuantity = (data, toast) => async (dispatch, getState) => {
+  const productId = Number(data?.productId);
+  if (!productId) return toast?.error("상품 ID가 없습니다.");
 
-    // 현재 수량 파악 (스토어 우선, 없으면 컴포넌트 state 보조)
-    const prevItem = getState().carts.cart.find(i => i.productId === productId);
-    const prevQty  = Number(prevItem?.quantity ?? currentQuantity ?? 0);
-    const nextQty  = prevQty + 1;
+  const prev = getState().carts.cart.find(i => String(i.productId) === String(productId));
+  const prevQty = Number(prev?.quantity ?? data?.quantity ?? 0);
+  const nextQty = prevQty + 1;
 
-    // ✅ 낙관적 업데이트(즉시 반영)
-    dispatch({ type: "CART_UPDATE_QTY_OPTIMISTIC", payload: { productId, quantity: nextQty } });
-    setCurrentQuantity?.(nextQty);
+  dispatch({ type: "CART_UPDATE_QTY_OPTIMISTIC", payload: { productId, quantity: nextQty, item: data } });
 
-    try {
-      const { data: dto } = await api.put(
-        `/cart/products/${productId}/quantity/add`,
-        null,
-        { withCredentials: true }
-      );
+  try {
+    const { data: dto } = await api.put(`/cart/products/${productId}/quantity/add`, null, { withCredentials: true });
+    dispatch({ type: "CART_SET_FROM_SERVER", payload: dto });
+    toast?.success("수량을 1 증가했습니다.");
+  } catch (e) {
+    dispatch({ type: "CART_ROLLBACK_QTY", payload: { productId, prevQuantity: prevQty } });
+    toast?.error(e?.response?.data?.message || "장바구니 업데이트 실패");
+  }
+};
 
-      // ✅ 서버 정합으로 최종 동기화 (리듀서의 CART_SET_FROM_SERVER 사용)
-      dispatch({ type: "CART_SET_FROM_SERVER", payload: dto });
+export const decreaseCartQuantity = (data, toast) => async (dispatch, getState) => {
+  const productId = Number(data?.productId);
+  if (!productId) return toast?.error("상품 ID가 없습니다.");
 
-      // 최신 수량을 컴포넌트 state에도 반영(선택)
-      const updated = Array.isArray(dto?.products)
-        ? dto.products.find(p => p.productId === productId)
-        : null;
-      if (updated && typeof updated.quantity === "number") {
-        setCurrentQuantity?.(updated.quantity);
-      }
+  const prev = getState().carts.cart.find(i => String(i.productId) === String(productId));
+  const prevQty = Number(prev?.quantity ?? data?.quantity ?? 0);
+  const nextQty = Math.max(0, prevQty - 1);
 
-      toast?.success("수량을 1 증가했습니다.");
-    } catch (err) {
-      // ❗ 실패 → 롤백
-      dispatch({ type: "CART_ROLLBACK_QTY", payload: { productId, prevQuantity: prevQty } });
-      setCurrentQuantity?.(prevQty);
+  dispatch({ type: "CART_UPDATE_QTY_OPTIMISTIC", payload: { productId, quantity: nextQty } });
 
-      const status = err?.response?.status;
-      if (status === 401 || status === 403) {
-        toast?.error("로그인이 필요합니다.");
-      } else {
-        toast?.error(err?.response?.data?.message || "장바구니 업데이트 실패");
-      }
-    }
-  };
-
-/** 수량 -1 (0이면 화면상 0으로만 두고, 실제 삭제 여부는 서버 응답으로 정합 맞춤) */
-export const decreaseCartQuantity =
-  (data, toast, currentQuantity, setCurrentQuantity) =>
-  async (dispatch, getState) => {
-    const productId = data?.productId;
-    if (productId == null) {
-      toast?.error("상품 ID가 없습니다.");
-      return;
-    }
-
-    // 스토어에 있는 동일 아이템을 먼저 찾고, 그 아이템의 productId를 "스토어용 id"로 사용
-    const prevItem = getState().carts.cart.find(
-      (i) => String(i.productId) === String(productId)
-    );
-    const idForStore = prevItem?.productId ?? productId; // 스토어에 저장된 타입 유지
-    const prevQty    = Number(prevItem?.quantity ?? currentQuantity ?? 0);
-    const nextQty    = Math.max(0, prevQty - 1);
-    
-
-    // ✅ 낙관적 업데이트(스토어에서 쓰던 id 타입으로 디스패치)
-    dispatch({
-      type: "CART_UPDATE_QTY_OPTIMISTIC",
-      payload: { productId: idForStore, quantity: nextQty },
-    });
-    setCurrentQuantity?.(nextQty);
-
-    try {
-      // 서버 호출은 경로상 숫자가 안전
-      const pidForUrl = Number(productId);
-      const { data: dto } = await api.put(
-        `/cart/products/${pidForUrl}/quantity/delete`,
-        null,
-        { withCredentials: true }
-      );
-
-      // ✅ 서버 정합 반영
-      dispatch({ type: "CART_SET_FROM_SERVER", payload: dto });
-
-      const updated = Array.isArray(dto?.products)
-        ? dto.products.find((p) => String(p.productId) === String(productId))
-        : null;
-
-      if (updated && typeof updated.quantity === "number") {
-        setCurrentQuantity?.(updated.quantity);
-        toast?.success("수량을 1 감소했습니다.");
-      } else {
-        setCurrentQuantity?.(0);
-        toast?.success("장바구니에서 품목이 제거되었습니다.");
-      }
-    } catch (err) {
-      // ❗ 실패 → 롤백 (스토어에서 쓰던 id 타입으로 롤백)
-      dispatch({
-        type: "CART_ROLLBACK_QTY",
-        payload: { productId: idForStore, prevQuantity: prevQty },
-      });
-      setCurrentQuantity?.(prevQty);
-
-      const status = err?.response?.status;
-      if (status === 401 || status === 403) {
-        toast?.error("로그인이 필요합니다.");
-      } else {
-        toast?.error(err?.response?.data?.message || "장바구니 업데이트 실패");
-      }
-    }
-  };
+  try {
+    const { data: dto } = await api.put(`/cart/products/${productId}/quantity/delete`, null, { withCredentials: true });
+    dispatch({ type: "CART_SET_FROM_SERVER", payload: dto });
+    toast?.success(nextQty > 0 ? "수량을 1 감소했습니다." : "장바구니에서 품목이 제거되었습니다.");
+  } catch (e) {
+    dispatch({ type: "CART_ROLLBACK_QTY", payload: { productId, prevQuantity: prevQty } });
+    toast?.error(e?.response?.data?.message || "장바구니 업데이트 실패");
+  }
+};
 
 export const removeFromCart =
   ({ cartId, productId, productName }, toast) =>

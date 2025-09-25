@@ -14,6 +14,7 @@ const Cart = () => {
   );
 
   const subtotal = useSelector((s) => s.carts.totalPrice);
+  const quantity = useSelector((q) => q.carts.cart.quantity);
 
   // 1) 마운트 시 GET
   useEffect(() => {
@@ -107,7 +108,7 @@ const Cart = () => {
 
       <div>
         {cart.map((item, i) => (
-          <ItemContent key={item.productId ?? i} {...item} cartId={cartId}/>
+          <ItemContent key={item.productId ?? i} {...item} cartId={cartId} quantity={item.quantity}/>
         ))}
       </div>
 
