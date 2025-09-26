@@ -10,7 +10,7 @@ import PaymentMethod from './PaymentMethod';
 import OrderSummary from './OrderSummary';
 import StripePayment from './StripePayment';
 import PaypalPayment from './PaypalPayment';
-import KakaoPayPayment from './KakaoPayPayment';  // ✅ 카카오페이 컴포넌트 import
+import KakaoPayPayment from './KakaoPayPayment';
 
 const Checkout = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -18,30 +18,32 @@ const Checkout = () => {
 
   const { isLoading, errorMessage } = useSelector((state) => state.errors);
   const { cart, totalPrice } = useSelector((state) => state.carts);
-  const { address, selectedUserCheckoutAddress } = useSelector(
-    (state) => state.auth
-  );
+  const { address, selectedUserCheckoutAddress } = useSelector((state) => state.auth);
   const { paymentMethod } = useSelector((state) => state.payment);
 
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-  };
+  // (선택) 주문요약 프리뷰를 올리고 싶다면 유지
+  const [orderPreview, setOrderPreview] = useState(null);
+  const finalPay = orderPreview?.finalPay;
+  console.log("finalPay = ", finalPay);
+
+  const handleBack = () => setActiveStep((prev) => prev - 1);
 
   const handleNext = () => {
+    // Step 0: Address → 주소 선택 검증
     if (activeStep === 0 && !selectedUserCheckoutAddress) {
       toast.error('Please select checkout address before proceeding.');
       return;
     }
-
-    if (activeStep === 1 && (!selectedUserCheckoutAddress || !paymentMethod)) {
+    // Step 2: Payment Method → 결제수단 선택 검증 (순서 변경에 따라 1→2로 이동)
+    if (activeStep === 2 && (!selectedUserCheckoutAddress || !paymentMethod)) {
       toast.error('Please select payment method before proceeding.');
       return;
     }
-
-    setActiveStep((prevStep) => prevStep + 1);
+    setActiveStep((prev) => prev + 1);
   };
 
-  const steps = ['Address', 'Payment Method', 'Order Summary', 'Payment'];
+  // ✅ 순서 변경: Address → Order Summary → Payment Method → Payment
+  const steps = ['Address', 'Order Summary', 'Payment Method', 'Payment'];
 
   useEffect(() => {
     dispatch(getUserAddresses());
@@ -63,16 +65,23 @@ const Checkout = () => {
         </div>
       ) : (
         <div className="mt-5">
+          {/* 0: Address */}
           {activeStep === 0 && <AddressInfo address={address} />}
-          {activeStep === 1 && <PaymentMethod />}
-          {activeStep === 2 && (
+
+          {/* 1: Order Summary (순서 변경) */}
+          {activeStep === 1 && (
             <OrderSummary
               totalPrice={totalPrice}
               cart={cart}
               address={selectedUserCheckoutAddress}
-              paymentMethod={paymentMethod}
+              onPreview={(p) => setOrderPreview(p)} // 필요하면 사용
             />
           )}
+
+          {/* 2: Payment Method (순서 변경) */}
+          {activeStep === 2 && <PaymentMethod />}
+
+          {/* 3: Payment */}
           {activeStep === 3 && (
             <>
               {paymentMethod === 'Stripe' ? (
@@ -80,7 +89,7 @@ const Checkout = () => {
               ) : paymentMethod === 'Paypal' ? (
                 <PaypalPayment />
               ) : paymentMethod === 'KakaoPay' ? (
-                <KakaoPayPayment /> // ✅ 카카오페이 분기 처리
+                <KakaoPayPayment finalPay={finalPay}/>
               ) : null}
             </>
           )}
@@ -98,14 +107,14 @@ const Checkout = () => {
         {activeStep !== steps.length - 1 && (
           <button
             disabled={
-              errorMessage ||
+              !!errorMessage ||
               (activeStep === 0 && !selectedUserCheckoutAddress) ||
-              (activeStep === 1 && !paymentMethod)
+              (activeStep === 2 && !paymentMethod) // ✅ 결제수단 검증 위치 변경
             }
             className={`bg-customBlue font-semibold px-6 h-10 rounded-md text-white ${
               errorMessage ||
               (activeStep === 0 && !selectedUserCheckoutAddress) ||
-              (activeStep === 1 && !paymentMethod)
+              (activeStep === 2 && !paymentMethod)
                 ? 'opacity-60'
                 : ''
             }`}

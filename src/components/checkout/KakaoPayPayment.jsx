@@ -2,8 +2,8 @@ import React from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 
-const KakaoPayPayment = () => {
-  const { cart, totalPrice } = useSelector((state) => state.carts);
+const KakaoPayPayment = ({ finalPay }) => {
+  const { cart } = useSelector((state) => state.carts);
   const { user } = useSelector((state) => state.auth);
   const { selectedUserCheckoutAddress } = useSelector((state) => state.auth);
 
@@ -18,7 +18,7 @@ const KakaoPayPayment = () => {
         userId: user.id,
         productName,
         quantity: cart.length,
-        totalPrice: totalPrice,
+        totalPrice: finalPay,
         addressId: selectedUserCheckoutAddress?.addressId,
       });
 

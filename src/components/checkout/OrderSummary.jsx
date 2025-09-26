@@ -80,9 +80,15 @@ const OrderSummary = ({ totalPrice = 0, cart = [], address, paymentMethod, onPre
   const useMax = () => {
     const balance = Number(preview?.myBalanceBefore ?? 0);
     const orderTotal = Number.isFinite(totalPrice) ? Number(totalPrice) : 0;
-    const optimisticMax = Math.max(0, Math.min(balance, orderTotal)); // <= 핵심
+
+    // PG 결제 최소 1원 유지: 포인트는 최대 (주문총액 - 1)까지만
+    const capForPg = Math.max(0, Math.floor(orderTotal) - 1);
+
+    // 보유 포인트와 capForPg 중 작은 값
+    const optimisticMax = Math.max(0, Math.min(Math.floor(balance), capForPg));
+
     setPointsInput(optimisticMax);
-    // 즉시 미리보기 갱신
+    // 즉시 프리뷰 반영
     callPreview(orderTotal, optimisticMax);
   };
 
