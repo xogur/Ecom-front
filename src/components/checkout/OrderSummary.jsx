@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { formatPriceCalculation } from '../../utils/formatPrice';
+import { formatPriceCalculation, formatPrice } from '../../utils/formatPrice';
 
 /**
  * props:
@@ -129,7 +129,7 @@ const OrderSummary = ({ totalPrice = 0, cart = [], address, paymentMethod, onPre
                     <div className="text-gray-500">
                       <p>{item?.productName}</p>
                       <p>
-                        {item?.quantity} x ${item?.specialPrice} = {
+                        {item?.quantity} x {item?.specialPrice}원 = {
                           formatPriceCalculation(item?.quantity, item?.specialPrice)
                         }
                       </p>
@@ -194,19 +194,19 @@ const OrderSummary = ({ totalPrice = 0, cart = [], address, paymentMethod, onPre
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Products</span>
-                <span>${formatPriceCalculation(totalPrice, 1)}</span>
+                <span>{formatPriceCalculation(totalPrice, 1)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax (0%)</span>
-                <span>$0.00</span>
+                <span>0.00</span>
               </div>
               <div className="flex justify-between">
                 <span>Points Used</span>
-                <span>- {formatCurrency(preview?.pointsToUse ?? 0)}</span>
+                <span>- {formatPrice(preview?.pointsToUse ?? 0)}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Final Pay</span>
-                <span>{formatCurrency(finalPay)}</span>
+                <span>{formatPrice(finalPay)}</span>
               </div>
             </div>
 

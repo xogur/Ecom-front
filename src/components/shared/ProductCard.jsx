@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 // ❌ 배치 훅은 부모에서 호출 → 여기선 제거
 // import useBatchProductLikes from "../../utils/useBatchProductLikes"
 import LikeButton from "./LikeButton";
+import { formatPrice } from "../../utils/formatPrice";
 
 const ProductCard = ({
   productId,
@@ -112,15 +113,15 @@ const ProductCard = ({
             {specialPrice ? (
               <div className="flex flex-col">
                 <span className="text-gray-400 line-through">
-                  ${Number(price).toFixed(2)}
+                  {formatPrice(price)}
                 </span>
                 <span className="text-xl font-bold text-slate-700">
-                  ${Number(specialPrice).toFixed(2)}
+                  {formatPrice(specialPrice)}
                 </span>
               </div>
             ) : (
               <span className="text-xl font-bold text-slate-700">
-                ${Number(price).toFixed(2)}
+                {formatPrice(price)}
               </span>
             )}
 
