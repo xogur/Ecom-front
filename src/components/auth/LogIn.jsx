@@ -9,7 +9,7 @@ import { authenticateSignInUser } from "../../store/actions";
 import toast from "react-hot-toast";
 import Spinners from "../shared/Spinners";
 
-const API_BASE = import.meta.env.VITE_BACK_END_URL ?? "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_BACK_END_URL;
 
 const LogIn = () => {
   const navigate = useNavigate();

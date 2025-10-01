@@ -6,6 +6,8 @@ import axios from 'axios';
 import Skeleton from '../shared/Skeleton'; // 기존과 동일하게 사용
 import toast from 'react-hot-toast';
 
+const baseURL = import.meta.env.VITE_BACK_END_URL;
+
 const KakaoPaymentConfirmation = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -23,7 +25,7 @@ const KakaoPaymentConfirmation = () => {
   useEffect(() => {
     const approvePayment = async () => {
       try {
-        const response = await axios.post("http://localhost:8080/api/pay/approve", {
+        const response = await axios.post(`${baseURL}/api/pay/approve`, {
           pgToken,
           userId: "user-001" // ✔️ 실제 로그인 사용자 이메일/ID로 교체 필요
         });

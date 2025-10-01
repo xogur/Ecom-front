@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import './App.css'
 import Products from './components/products/Products'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
@@ -19,34 +19,38 @@ import AdminPage from './components/admin/AdminPage';
 import OrderProfile from './components/profile/OrderProfile';
 import Profile from './components/profile/Profile';
 
-
-
 function App() {
   return (
     <React.Fragment>
       <Router>
         <Navbar />
         <Routes>
-          <Route path='/' element={ <Home />}/>
-          <Route path='/products' element={ <Products />}/>
-          <Route path='/about' element={ <About />}/>
-          <Route path='/contact' element={ <Contact />}/>
-          <Route path='/cart' element={ <Cart />}/>
+          {/* 공개 페이지 */}
+          <Route path='/' element={<Home />}/>
+          <Route path='/products' element={<Products />}/>
+          <Route path='/about' element={<About />}/>
+          <Route path='/contact' element={<Contact />}/>
+          <Route path='/cart' element={<Cart />}/>
           <Route path="/payment/success" element={<PaymentSuccess />} />
-        
-          <Route path='/' element={<PrivateRoute />}>
-            <Route path='/checkout' element={ <Checkout />}/>
-            <Route path='/order-confirm' element={ <PaymentConfirmation />}/>
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/profile/orders" element={<OrderProfile />} />
-            <Route path="/profile" element={<Profile />} />
+
+          {/* 보호 라우트(로그인 필요) */}
+          <Route element={<PrivateRoute />}>
+            <Route path='/checkout' element={<Checkout />}/>
+            <Route path='/order-confirm' element={<PaymentConfirmation />}/>
+            <Route path='/admin' element={<AdminPage />} />
+            <Route path='/profile/orders' element={<OrderProfile />} />
+            <Route path='/profile' element={<Profile />} />
           </Route>
 
-          <Route path='/' element={<PrivateRoute publicPage />}>
-            <Route path='/login' element={ <LogIn />}/>
+          {/* 비로그인 전용 라우트(로그인/회원가입/OAuth 완료) */}
+          <Route element={<PrivateRoute publicPage />}>
+            <Route path='/login' element={<LogIn />}/>
             <Route path="/oauth/success" element={<OAuthSuccess />} />
-            <Route path='/register' element={ <Register />}/>
+            <Route path='/register' element={<Register />}/>
           </Route>
+
+          {/* (선택) 404 핸들링이 필요하면 별도 컴포넌트로 */}
+          {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </Router>
       <Toaster position='bottom-center'/>

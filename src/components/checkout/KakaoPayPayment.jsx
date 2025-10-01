@@ -2,6 +2,8 @@ import React from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 
+const baseURL = import.meta.env.VITE_BACK_END_URL;
+
 const KakaoPayPayment = ({ finalPay }) => {
   const { cart } = useSelector((state) => state.carts);
   const { user } = useSelector((state) => state.auth);
@@ -14,7 +16,7 @@ const KakaoPayPayment = ({ finalPay }) => {
           ? cart[0].productName
           : `${cart[0].productName} 외 ${cart.length - 1}건`;
 
-      const response = await axios.post("http://localhost:8080/api/pay/ready", {
+      const response = await axios.post(`${baseURL}/api/pay/ready`, {
         userId: user.id,
         productName,
         quantity: cart.length,

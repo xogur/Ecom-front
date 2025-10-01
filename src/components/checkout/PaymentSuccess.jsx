@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_BACK_END_URL;
+
 const PaymentSuccess = () => {
   const location = useLocation();
   const [paymentData, setPaymentData] = useState(null);
@@ -14,7 +16,7 @@ const PaymentSuccess = () => {
   useEffect(() => {
     const fetchPaymentData = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/pay/success', {
+        const response = await axios.get(`${baseURL}/api/pay/success`, {
           params: { pg_token: pgToken, userId }
         });
         console.log('✅ 결제 응답:', response.data);
@@ -70,7 +72,7 @@ const PaymentSuccess = () => {
         {order.orderItems.map((item) => (
           <div key={item.orderItemId} className="mb-4 flex gap-4 items-center">
             <img
-              src={`http://localhost:8080/images/${item.product.image}`}
+              src={`${baseURL}/images/${item.product.image}`}
               alt={item.product.productName}
               className="w-20 h-20 border rounded"
             />
