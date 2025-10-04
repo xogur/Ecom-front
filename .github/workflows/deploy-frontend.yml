@@ -50,34 +50,30 @@ jobs:
 
       - name: Activate on EC2 (atomic switch)
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          REL_NAME=${{ steps.pack.outputs.rel }}
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
           set -euo pipefail
           DEPLOY_DIR="${DEPLOY_DIR:-/var/www/ecom}"
-          REL="${REL_NAME}"
+          REL="$REL_NAME"
           TMP="/tmp/${REL}.tar.gz"
 
-          # 1) /tmp에 새 버전 풀기
           NEW_DIR="/tmp/${REL}"
           rm -rf "$NEW_DIR"
           mkdir -p "$NEW_DIR"
           tar -xzf "$TMP" -C "$NEW_DIR"
 
-          # 2) 권한 정리
           sudo chown -R www-data:www-data "$NEW_DIR"
           sudo find "$NEW_DIR" -type d -exec chmod 755 {} \;
           sudo find "$NEW_DIR" -type f -exec chmod 644 {} \;
 
-          # 3) /var/www 아래로 교체
           sudo mkdir -p "$(dirname "$DEPLOY_DIR")"
           if [ -d "$DEPLOY_DIR" ]; then
             sudo mv "$DEPLOY_DIR" "${DEPLOY_DIR}-backup-$(date +%Y%m%d-%H%M%S)" || true
           fi
           sudo mv "$NEW_DIR" "$DEPLOY_DIR"
 
-          # 4) Nginx 테스트 & 리로드
           sudo nginx -t
           sudo systemctl reload nginx
           EOF
         env:
           DEPLOY_DIR: ${{ env.DEPLOY_DIR }}
-          REL_NAME: ${{ steps.pack.outputs.rel }}
