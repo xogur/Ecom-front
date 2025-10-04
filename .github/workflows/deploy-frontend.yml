@@ -23,9 +23,8 @@ jobs:
 
       - name: Install & Build
         run: |
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
-          ls -al dist
 
       - name: Pack release
         id: pack
