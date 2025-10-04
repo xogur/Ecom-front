@@ -68,6 +68,7 @@ jobs:
           sudo find "$NEW_DIR" -type f -exec chmod 644 {} \;
 
           # 3) 구버전 백업 & 원자적 스위치
+          sudo mkdir -p "$(dirname "$DEPLOY_DIR")"
           if [ -d "$DEPLOY_DIR" ]; then
             sudo mv "$DEPLOY_DIR" "${DEPLOY_DIR}-backup-$(date +%Y%m%d-%H%M%S)" || true
           fi
