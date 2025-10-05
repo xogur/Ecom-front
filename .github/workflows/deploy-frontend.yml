@@ -1,84 +1,84 @@
-name: Deploy Frontend to EC2 (Nginx)
+# name: Deploy Frontend to EC2 (Nginx)
 
-on:
-  push:
-    branches: [ main ]
+# on:
+#   push:
+#     branches: [ main ]
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
 
-    env:
-      DEPLOY_DIR: /var/www/ecom           # Nginx root와 일치해야 함
+#     env:
+#       DEPLOY_DIR: /var/www/ecom           # Nginx root와 일치해야 함
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+#       - name: Setup Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#           cache: 'npm'
 
-      - name: Install & Build
-        run: |
-          npm ci --legacy-peer-deps
-          npm run build
+#       - name: Install & Build
+#         run: |
+#           npm ci --legacy-peer-deps
+#           npm run build
 
-      - name: Pack release
-        id: pack
-        run: |
-          REL="dist-$(echo $GITHUB_SHA | cut -c1-7)"
-          echo "rel=$REL" >> $GITHUB_OUTPUT
-          tar -C dist -czf "${REL}.tar.gz" .
-          ls -al "${REL}.tar.gz"
+#       - name: Pack release
+#         id: pack
+#         run: |
+#           REL="dist-$(echo $GITHUB_SHA | cut -c1-7)"
+#           echo "rel=$REL" >> $GITHUB_OUTPUT
+#           tar -C dist -czf "${REL}.tar.gz" .
+#           ls -al "${REL}.tar.gz"
 
-      - name: Add SSH key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+#       - name: Add SSH key
+#         uses: webfactory/ssh-agent@v0.9.0
+#         with:
+#           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Add known_hosts
-        run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+#       - name: Add known_hosts
+#         run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # 업로드는 임시 폴더로 먼저
-      - name: Upload archive
-        run: |
-          scp -o StrictHostKeyChecking=no "${{ steps.pack.outputs.rel }}.tar.gz" \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/
+#       # 업로드는 임시 폴더로 먼저
+#       - name: Upload archive
+#         run: |
+#           scp -o StrictHostKeyChecking=no "${{ steps.pack.outputs.rel }}.tar.gz" \
+#             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/
 
-      - name: Activate on EC2 (atomic switch)
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "REL='${{ steps.pack.outputs.rel }}' DEPLOY_DIR='${{ env.DEPLOY_DIR }}' bash -s" << 'EOF'
-          set -euo pipefail
+#       - name: Activate on EC2 (atomic switch)
+#         run: |
+#           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+#             "REL='${{ steps.pack.outputs.rel }}' DEPLOY_DIR='${{ env.DEPLOY_DIR }}' bash -s" << 'EOF'
+#           set -euo pipefail
 
-          echo "[DEBUG] REL=$REL DEPLOY_DIR=$DEPLOY_DIR"
+#           echo "[DEBUG] REL=$REL DEPLOY_DIR=$DEPLOY_DIR"
 
-          TMP="/tmp/${REL}.tar.gz"
-          NEW_DIR="/tmp/${REL}"
+#           TMP="/tmp/${REL}.tar.gz"
+#           NEW_DIR="/tmp/${REL}"
 
-          # 1) /tmp에서 압축 해제
-          rm -rf "$NEW_DIR"
-          mkdir -p "$NEW_DIR"
-          tar -xzf "$TMP" -C "$NEW_DIR"
+#           # 1) /tmp에서 압축 해제
+#           rm -rf "$NEW_DIR"
+#           mkdir -p "$NEW_DIR"
+#           tar -xzf "$TMP" -C "$NEW_DIR"
 
-          # 2) 권한 정리
-          sudo chown -R www-data:www-data "$NEW_DIR"
-          sudo find "$NEW_DIR" -type d -exec chmod 755 {} \;
-          sudo find "$NEW_DIR" -type f -exec chmod 644 {} \;
+#           # 2) 권한 정리
+#           sudo chown -R www-data:www-data "$NEW_DIR"
+#           sudo find "$NEW_DIR" -type d -exec chmod 755 {} \;
+#           sudo find "$NEW_DIR" -type f -exec chmod 644 {} \;
 
-          # 3) /var/www/ecom 교체
-          sudo mkdir -p "$(dirname "$DEPLOY_DIR")"
-          if [ -d "$DEPLOY_DIR" ]; then
-            sudo mv "$DEPLOY_DIR" "${DEPLOY_DIR}-backup-$(date +%Y%m%d-%H%M%S)" || true
-          fi
-          sudo mv "$NEW_DIR" "$DEPLOY_DIR"
+#           # 3) /var/www/ecom 교체
+#           sudo mkdir -p "$(dirname "$DEPLOY_DIR")"
+#           if [ -d "$DEPLOY_DIR" ]; then
+#             sudo mv "$DEPLOY_DIR" "${DEPLOY_DIR}-backup-$(date +%Y%m%d-%H%M%S)" || true
+#           fi
+#           sudo mv "$NEW_DIR" "$DEPLOY_DIR"
 
-          # 4) Nginx 검사 & 리로드
-          sudo nginx -t
-          sudo systemctl reload nginx
-          EOF
-        env:
-          DEPLOY_DIR: ${{ env.DEPLOY_DIR }}
+#           # 4) Nginx 검사 & 리로드
+#           sudo nginx -t
+#           sudo systemctl reload nginx
+#           EOF
+#         env:
+#           DEPLOY_DIR: ${{ env.DEPLOY_DIR }}

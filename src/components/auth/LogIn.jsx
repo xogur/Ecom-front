@@ -93,7 +93,7 @@ const LogIn = () => {
 
         {/* ✅ 구글 로그인 버튼 (백엔드 OAuth2 엔드포인트로 이동) */}
         <a
-          href={`/oauth2/authorization/google`}
+          href={`${API_BASE}/oauth2/authorization/google`}
           className={`w-full flex items-center justify-center gap-2 border border-slate-300 rounded-sm py-2 font-semibold ${
             loader
               ? "opacity-60 cursor-not-allowed"

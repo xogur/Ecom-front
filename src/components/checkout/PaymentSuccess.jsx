@@ -2,10 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 
+// ▼ 추가
+import { useDispatch } from 'react-redux';
+import { getUserCart } from '../../store/actions'; // or "../store/cartsSlice" 위치에 맞춰 경로 조정
+
 const baseURL = import.meta.env.VITE_BACK_END_URL;
 
 const PaymentSuccess = () => {
   const location = useLocation();
+  const dispatch = useDispatch(); // ▼ 추가
   const [paymentData, setPaymentData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,6 +26,9 @@ const PaymentSuccess = () => {
         });
         console.log('✅ 결제 응답:', response.data);
         setPaymentData(response.data);
+
+        // ✅ 결제 승인/주문 생성 완료 직후 장바구니 최신화 → Navbar 배지도 즉시 반영
+        dispatch(getUserCart());
       } catch (err) {
         console.error("❌ 결제 승인 실패:", err);
       } finally {
@@ -29,12 +37,13 @@ const PaymentSuccess = () => {
     };
 
     if (pgToken && userId) fetchPaymentData();
-  }, [pgToken, userId]);
+    // pgToken/userId가 바뀌는 경우 재호출
+  }, [pgToken, userId, dispatch]);
 
   if (loading) return <div className="text-center py-10">로딩 중...</div>;
   if (!paymentData) return <div className="text-center py-10 text-red-500">주문 정보를 불러올 수 없습니다.</div>;
 
-  const { kakaoResponse, productName, quantity, totalPrice, order } = paymentData;
+  const { kakaoResponse, order } = paymentData;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -58,7 +67,7 @@ const PaymentSuccess = () => {
         <p><strong>총 금액:</strong> {order.totalAmount.toLocaleString()}원</p>
       </section>
 
-      {/* ✅ 배송지 정보 (예시: addressId로 배송지 조회하거나 서버에서 address 포함하도록 수정 필요) */}
+      {/* ✅ 배송지 정보 */}
       <section className="mb-6 p-4 border rounded bg-gray-50">
         <h3 className="text-lg font-semibold mb-2">배송지 정보</h3>
         <p><strong>도시:</strong> {order.address?.city}</p>
@@ -66,7 +75,7 @@ const PaymentSuccess = () => {
         <p><strong>우편번호:</strong> {order.address?.pincode}</p>
       </section>
 
-      {/* ✅ 주문 상품 이미지 및 상세 정보 */}
+      {/* ✅ 주문 상품 */}
       <section className="p-4 border rounded">
         <h3 className="text-lg font-semibold mb-2">주문 상품</h3>
         {order.orderItems.map((item) => (

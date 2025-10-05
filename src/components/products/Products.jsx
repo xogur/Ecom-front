@@ -20,7 +20,7 @@ const Products = () => {
 
   // URL 쿼리
   const [searchParams, setSearchParams] = useSearchParams();
-  const pageFromURL = Math.max(1, Number(searchParams.get("page") || 1)); // 1-base
+  const pageFromURL = Math.max(1, Number(searchParams.get("page") || 0)); // 1-base
   const sizeFromURL = Math.max(1, Number(searchParams.get("size") || DEFAULT_PAGE_SIZE));
   const sortBy      = searchParams.get("sortby")    || "price";
   const sortOrder   = searchParams.get("order")     || "asc";

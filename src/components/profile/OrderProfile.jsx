@@ -3,7 +3,7 @@ import api from "../../api/api";
 import "../../css/orderListStyle.css";
 
 const baseURL = import.meta.env.VITE_BACK_END_URL;
-const PAGE_SIZE = 2;
+const PAGE_SIZE = 5;
 
 // YYYY-MM-DD만 추출
 function fmtDate(d) {
